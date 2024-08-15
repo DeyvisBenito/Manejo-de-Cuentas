@@ -1,0 +1,12 @@
+﻿.encabezado{
+    padding: 0 0 30px 0;
+}
+
+.intermedio {
+    background: #8CA42E;
+}
+
+
+#reordenable{
+    cursor: move;
+}
