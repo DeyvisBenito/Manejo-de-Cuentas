@@ -1,7 +1,55 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+﻿@model IEnumerable<Categoria>
 @{
+    ViewData["Title"] = "Categorias";
 }
 
-<a asp-action="Crear" class="btn btn-success">Crear Categoria</a>
+<div class="mb-5 text-center">
+    <h1>Categorias</h1>
+    <h5>Las categorias son de los lugares de donde proviene o se invierte su dinero como los ingresos y gastos.</h5>
+    
+</div>
+<div style="justify-content:space-between; width: 83%;" class="mb-1 text-end">
+    <a asp-action="Crear" class="btn btn-success mb-3">Crear Categoria</a>
+</div>
+
+
+<div class="row justify-content-center">
+    <div class="col-8">
+        <table class="table table-bordered border-dark">
+            <thead>
+                <tr>
+                    <th>
+                        Nombre
+                    </th>
+                    <th>
+                        Tipo
+                    </th>
+                    <th>
+                        
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var categoria in Model)
+                {
+                    <tr>
+                        <td>
+                            @categoria.Nombre
+                        </td>
+                        <td>
+                            @categoria.TipoOperacionId.ToString()
+                        </td>
+                        <td>
+                            <div class="aling-content-end text-end">
+                                <a class="btn btn-primary" asp-action="Editar" asp-route-id="@categoria.Id"> <i class="bi bi-pencil-fill"></i> </a>
+                                <a class="btn btn-danger" asp-action="Borrar" asp-route-id="@categoria.Id"><i class="bi bi-trash3-fill"></i></a>
+                            </div>
+                            
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
