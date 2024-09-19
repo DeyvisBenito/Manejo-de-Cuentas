@@ -6,6 +6,9 @@ namespace ManejoPresupuesto.Servicios
 {
     public interface IRepositorioCategorias
     {
+        Task Actualizar(Categoria categoria);
+        Task Borrar(int id);
+        Task<Categoria> BuscarPorId(int id, int usuarioId);
         Task Crear(Categoria categoria);
         Task<IEnumerable<Categoria>> ObtenerCategorias(int usuarioId);
     }
@@ -34,6 +37,29 @@ namespace ManejoPresupuesto.Servicios
 
             return await connection.QueryAsync<Categoria>("SP_Obtener_Categorias", new { UsuarioId = usuarioId }, 
                                                           commandType: System.Data.CommandType.StoredProcedure);
+        }
+
+        public async Task<Categoria> BuscarPorId(int id, int usuarioId)
+        {
+            using var connection=new SqlConnection(connectionString);
+
+            return await connection.QueryFirstOrDefaultAsync<Categoria>("SP_ObtenerCategorioPorID", new {Id=id, UsuarioId=usuarioId},
+                                                                        commandType: System.Data.CommandType.StoredProcedure);
+        }
+
+        public async Task Actualizar(Categoria categoria)
+        {
+            using var connection = new SqlConnection(connectionString);
+
+            await connection.ExecuteAsync("SP_UpdateCategoria", new {Id=categoria.Id, Nombre=categoria.Nombre, TipoOperacionId=categoria.TipoOperacionId},
+                                          commandType: System.Data.CommandType.StoredProcedure);
+        }
+
+        public async Task Borrar(int id)
+        {
+            using var connection = new SqlConnection(connectionString);
+
+            await connection.ExecuteAsync("SP_BorrarCategoria", new {Id=id}, commandType: System.Data.CommandType.StoredProcedure);
         }
         
     }

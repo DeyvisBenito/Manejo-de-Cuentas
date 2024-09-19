@@ -44,5 +44,55 @@ namespace ManejoPresupuesto.Controllers
 
             return RedirectToAction("Index");
         }
+
+        public async Task<IActionResult> Editar(int id)
+        {
+            var usuarioId = servicioUsuarios.ObtenerId();
+
+            var categoriaExiste = await repositorioCategorias.BuscarPorId(id, usuarioId);
+
+            if(categoriaExiste is null)
+            {
+                return RedirectToAction("NoEncontrado", "Home");
+            }
+
+            return View(categoriaExiste);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Editar(Categoria categoria)
+        {
+            var usuarioId = servicioUsuarios.ObtenerId();
+            if (!ModelState.IsValid)
+            {
+                return View(categoria); 
+            }
+            categoria.UsuarioId= usuarioId;
+            var categoriaExiste = await repositorioCategorias.BuscarPorId(categoria.Id, categoria.UsuarioId);
+
+            if(categoriaExiste is null)
+            {
+                return RedirectToAction("NoEncontrado", "Home");
+            }
+
+            await repositorioCategorias.Actualizar(categoria);
+            return RedirectToAction("Index");
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Borrar(int id)
+        {
+            var usuarioId = servicioUsuarios.ObtenerId();
+            var existe = repositorioCategorias.BuscarPorId(id, usuarioId);
+
+            if(existe is null)
+            {
+                return RedirectToAction("NoEncontrado", "Home");
+            }
+
+            await repositorioCategorias.Borrar(id);
+
+            return RedirectToAction("Index");
+        }
     }
 }
