@@ -12,14 +12,16 @@ namespace ManejoPresupuesto.Controllers
         private readonly IServicioUsuarios servicioUsuarios;
         private readonly IRepositorioCuentas repositorioCuentas;
         private readonly IMapper mapper;
+        private readonly IRepositorioTransacciones repositorioTransacciones;
 
         public CuentasController(IRepositorioTiposCuentas repositorioTiposCuentas, IServicioUsuarios servicioUsuarios, IRepositorioCuentas repositorioCuentas,
-            IMapper mapper)
+            IMapper mapper, IRepositorioTransacciones repositorioTransacciones)
         {
             this.repositorioTiposCuentas = repositorioTiposCuentas;
             this.servicioUsuarios = servicioUsuarios;
             this.repositorioCuentas = repositorioCuentas;
             this.mapper = mapper;
+            this.repositorioTransacciones = repositorioTransacciones;
         }
 
         public async Task<IActionResult> Index()
@@ -139,6 +141,64 @@ namespace ManejoPresupuesto.Controllers
             await repositorioCuentas.Borrar(Id);
 
             return RedirectToAction("Index", "Cuentas");
+        }
+
+        public async Task<IActionResult> Detalle(int id, int mes, int year)
+        {
+            var usuarioId = servicioUsuarios.ObtenerId();
+            var cuenta = await repositorioCuentas.BuscarporId(usuarioId, id);
+
+            if(cuenta is null)
+            {
+                return RedirectToAction("NoEncontrado", "Home");
+            }
+
+            DateTime FechaInicio;
+            DateTime FechaFin;
+
+            if(mes>12 || mes<=0 || year <= 1900)
+            {
+                var hoy = DateTime.Today;
+                FechaInicio = new DateTime(hoy.Year, hoy.Month, 1);
+            }
+            else
+            {
+                FechaInicio = new DateTime(year, mes, 1);
+            }
+
+            FechaFin = FechaInicio.AddMonths(1).AddDays(-1);
+
+            var  TransaccionPorCuenta = new ObtenerTransaccionesPorCuenta()
+            {
+                UsuarioId = usuarioId,
+                CuentaId = id,
+                FechaInicio = FechaInicio,
+                FechaFin = FechaFin
+            };
+
+            var ObtenerTransaccionesPorCuenta = await repositorioTransacciones.ObtenerPorCuentaId(TransaccionPorCuenta);
+
+            var modelo = new ReporteTransaccionesDetalladas();
+            ViewBag.Cuenta = cuenta.Nombre;
+
+            var transaccionesPorFecha = ObtenerTransaccionesPorCuenta.OrderByDescending(x => x.FechaTransaccion)
+                .GroupBy(x => x.FechaTransaccion).Select(grupo => new ReporteTransaccionesDetalladas.TransaccionesDetalladas()
+                {
+                    FechaTransaccion = grupo.Key,
+                    Transacciones = grupo.AsEnumerable()
+                });
+
+            modelo.TransaccionesAgrupadas = transaccionesPorFecha;
+            modelo.FechaInicio = FechaInicio;
+            modelo.FechaFin = FechaFin;
+
+            ViewBag.mesAnterior = FechaInicio.AddMonths(-1).Month;
+            ViewBag.yearAnterior = FechaInicio.AddMonths(-1).Year;
+            ViewBag.mesPosterior = FechaInicio.AddMonths(1).Month;
+            ViewBag.yearPosterior = FechaInicio.AddMonths(1).Year;
+            ViewBag.urlRetorno = HttpContext.Request.Path + HttpContext.Request.QueryString;
+
+            return View(modelo);
         }
 
         private async Task<IEnumerable<SelectListItem>> ObtenerTiposCuenta(int usuarioID)

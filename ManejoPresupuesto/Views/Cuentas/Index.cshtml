@@ -65,7 +65,7 @@
                         {
                             var claseCuenta = claseBalance(cuenta1.Balance);
                             <li class="list-group-item lista-cuentas">
-                                <span><strong>@cuenta1.Nombre</strong></span>
+                                <span><strong><a asp-action="Detalle" asp-route-id="@cuenta1.Id">@cuenta1.Nombre</a></strong></span>
                                 <span class="@claseCuenta">@formatoMiles(cuenta1.Balance)
                                 <a asp-action="Editar" asp-route-id="@cuenta1.Id" class="btn btn-primary">
                                         <i class="bi bi-pencil-fill"></i>

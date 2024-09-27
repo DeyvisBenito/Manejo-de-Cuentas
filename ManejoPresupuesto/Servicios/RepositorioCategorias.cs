@@ -11,6 +11,7 @@ namespace ManejoPresupuesto.Servicios
         Task<Categoria> BuscarPorId(int id, int usuarioId);
         Task Crear(Categoria categoria);
         Task<IEnumerable<Categoria>> ObtenerCategorias(int usuarioId);
+        Task<IEnumerable<Categoria>> ObtenerCategorias(int usuarioId, TipoOperacion tipoOperacionId);
     }
     public class RepositorioCategorias: IRepositorioCategorias
     {
@@ -36,6 +37,14 @@ namespace ManejoPresupuesto.Servicios
             using var connection = new SqlConnection(connectionString);
 
             return await connection.QueryAsync<Categoria>("SP_Obtener_Categorias", new { UsuarioId = usuarioId }, 
+                                                          commandType: System.Data.CommandType.StoredProcedure);
+        }
+
+        public async Task<IEnumerable<Categoria>> ObtenerCategorias(int usuarioId, TipoOperacion tipoOperacionId)
+        {
+            using var connection = new SqlConnection(connectionString);
+
+            return await connection.QueryAsync<Categoria>("SP_ObtenerCategoriasTransacciones", new { UsuarioId = usuarioId, TipoOperacionId=tipoOperacionId },
                                                           commandType: System.Data.CommandType.StoredProcedure);
         }
 
