@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using ManejoPresupuesto.Models;
 using ManejoPresupuesto.Servicios;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
@@ -13,18 +14,95 @@ namespace ManejoPresupuesto.Controllers
         private readonly IRepositorioCuentas repositorioCuentas;
         private readonly IRepositorioCategorias repositorioCategorias;
         private readonly IMapper mapper;
+        private readonly IServicioReportes servicioReportes;
 
         public TransaccionesController(IServicioUsuarios servicioUsuarios, IRepositorioTransacciones repositorioTransacciones, 
-            IRepositorioCuentas repositorioCuentas, IRepositorioCategorias repositorioCategorias, IMapper mapper)
+            IRepositorioCuentas repositorioCuentas, IRepositorioCategorias repositorioCategorias, IMapper mapper, IServicioReportes servicioReportes)
         {
             this.servicioUsuarios = servicioUsuarios;
             this.repositorioTransacciones = repositorioTransacciones;
             this.repositorioCuentas = repositorioCuentas;
             this.repositorioCategorias = repositorioCategorias;
             this.mapper = mapper;
+            this.servicioReportes = servicioReportes;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index(int mes, int year)
+        {
+            var usuarioId = servicioUsuarios.ObtenerId();
+            var modelo = await servicioReportes.ObtenerTransaccionesDetalladas(usuarioId, mes, year, ViewBag);
+
+            return View(modelo);
+        }
+
+        public async Task<IActionResult> Semanal(int mes, int year)
+        {
+            var usuarioId = servicioUsuarios.ObtenerId();
+
+            IEnumerable<ReporteTransaccionesPorSemana> modelo = await servicioReportes.ObtenerReporteTransaccionesPorSemana(usuarioId, mes, year, ViewBag);
+
+            var agrupados = modelo.GroupBy(x => x.Semana).Select(x => new ReporteTransaccionesPorSemana()
+            {
+                Semana = x.Key,
+                Ingresos = x.Where(x => x.TipoOperacionId == TipoOperacion.Ingreso).Select(x => x.Monto).FirstOrDefault(),
+                Gastos = x.Where(x => x.TipoOperacionId == TipoOperacion.Gasto).Select(x => x.Monto).FirstOrDefault()
+            }).ToList();
+
+            if(mes == 0 || year == 0)
+            {
+                var hoy = DateTime.Today;
+                year = hoy.Year;
+                mes = hoy.Month;
+            }
+
+            var fechaReferencia = new DateTime(year, mes, 1);
+            var diasDelMes = Enumerable.Range(1, fechaReferencia.AddMonths(1).AddDays(-1).Day);
+
+            var diasSegmentados = diasDelMes.Chunk(7).ToList();
+
+            for (int i = 0; i < diasSegmentados.Count(); i++)
+            {
+                var semana = i + 1;
+                var fechaInicio = new DateTime(year, mes, diasSegmentados[i].First());
+                var fechaFin = new DateTime(year, mes, diasSegmentados[i].Last());
+                var grupoSemana = agrupados.FirstOrDefault(x => x.Semana == semana);
+
+                if(grupoSemana is null)
+                {
+                    agrupados.Add(new ReporteTransaccionesPorSemana()
+                    {
+                        Semana=semana,
+                        FechaInicio = fechaInicio,
+                        FechaFin= fechaFin
+                    });
+                }
+                else
+                {
+                    grupoSemana.FechaInicio = fechaInicio;
+                    grupoSemana.FechaFin = fechaFin;
+                }
+            }
+
+            agrupados = agrupados.OrderByDescending(x => x.Semana).ToList();
+
+            var modeloSemanal = new ReporteSemanalViewModel();
+            modeloSemanal.TransaccionesPorSemanas = agrupados;
+            modeloSemanal.FechaReferencia = fechaReferencia;
+
+            return View(modeloSemanal);
+        }
+
+        public IActionResult Mensual()
+        {
+            return View();
+        }
+
+        public IActionResult ExcelReporte()
+        {
+            return View();
+        }
+
+        public IActionResult Calendario()
         {
             return View();
         }

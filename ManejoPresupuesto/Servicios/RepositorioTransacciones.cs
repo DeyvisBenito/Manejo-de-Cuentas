@@ -11,6 +11,8 @@ namespace ManejoPresupuesto.Servicios
         Task Crear(Transaccion transaccion);
         Task<IEnumerable<Transaccion>> ObtenerPorCuentaId(ObtenerTransaccionesPorCuenta modelo);
         Task<Transaccion> ObtenerPorId(int id, int usuarioId);
+        Task<IEnumerable<Transaccion>> ObtenerPorUsuarioID(ParametroObtenerTransaccionesPorUsuario parametro);
+        Task<IEnumerable<ReporteTransaccionesPorSemana>> ObtenerTransaccionesPorSemana(ParametroObtenerTransaccionesPorUsuario model);
     }
     public class RepositorioTransacciones: IRepositorioTransacciones
     {
@@ -72,6 +74,28 @@ namespace ManejoPresupuesto.Servicios
                 modelo.CuentaId,
                 modelo.FechaInicio,
                 modelo.FechaFin
+            }, commandType: System.Data.CommandType.StoredProcedure);
+        }
+
+        public async Task<IEnumerable<Transaccion>> ObtenerPorUsuarioID(ParametroObtenerTransaccionesPorUsuario parametro)
+        {
+            using var connection = new SqlConnection(connectionString);
+
+            return await connection.QueryAsync<Transaccion>("SP_Obtener_Transaccion_PorUsuarioId", new
+            {
+                parametro.UsuarioId, parametro.FechaInicio, parametro.FechaFin
+            }, commandType: System.Data.CommandType.StoredProcedure);
+        }
+
+        public async Task<IEnumerable<ReporteTransaccionesPorSemana>> ObtenerTransaccionesPorSemana(ParametroObtenerTransaccionesPorUsuario model)
+        {
+            using var connection = new SqlConnection(connectionString);
+
+            return await connection.QueryAsync<ReporteTransaccionesPorSemana>("SP_Transacciones_Semanales", new
+            {
+                model.UsuarioId,
+                model.FechaInicio,
+                model.FechaFin
             }, commandType: System.Data.CommandType.StoredProcedure);
         }
 
