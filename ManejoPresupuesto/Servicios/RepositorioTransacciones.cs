@@ -11,6 +11,7 @@ namespace ManejoPresupuesto.Servicios
         Task Crear(Transaccion transaccion);
         Task<IEnumerable<Transaccion>> ObtenerPorCuentaId(ObtenerTransaccionesPorCuenta modelo);
         Task<Transaccion> ObtenerPorId(int id, int usuarioId);
+        Task<IEnumerable<ResultadoObtenerPorMes>> ObtenerPorMes(int usuarioId, int year);
         Task<IEnumerable<Transaccion>> ObtenerPorUsuarioID(ParametroObtenerTransaccionesPorUsuario parametro);
         Task<IEnumerable<ReporteTransaccionesPorSemana>> ObtenerTransaccionesPorSemana(ParametroObtenerTransaccionesPorUsuario model);
     }
@@ -96,6 +97,17 @@ namespace ManejoPresupuesto.Servicios
                 model.UsuarioId,
                 model.FechaInicio,
                 model.FechaFin
+            }, commandType: System.Data.CommandType.StoredProcedure);
+        }
+
+        public async Task<IEnumerable<ResultadoObtenerPorMes>> ObtenerPorMes(int usuarioId, int year)
+        {
+            using var connection = new SqlConnection(connectionString);
+
+            return await connection.QueryAsync<ResultadoObtenerPorMes>("SP_Transacciones_PorMes", new
+            {
+                usuarioId,
+                year
             }, commandType: System.Data.CommandType.StoredProcedure);
         }
 
