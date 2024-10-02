@@ -1,9 +1,11 @@
 ﻿using AutoMapper;
+using ClosedXML.Excel;
 using ManejoPresupuesto.Models;
 using ManejoPresupuesto.Servicios;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using System.Data;
 
 namespace ManejoPresupuesto.Controllers
 {
@@ -141,6 +143,91 @@ namespace ManejoPresupuesto.Controllers
         public IActionResult ExcelReporte()
         {
             return View();
+        }
+
+        [HttpGet]
+        public async Task<FileResult> ExportarExcelPorMes(int year, int mes)
+        {
+            var FechaInicio = new DateTime(year, mes, 1);
+            var FechaFin = FechaInicio.AddMonths(1).AddDays(-1);
+
+            var UsuarioId = servicioUsuarios.ObtenerId();
+
+            var transacciones = await repositorioTransacciones.ObtenerPorUsuarioID(new ParametroObtenerTransaccionesPorUsuario()
+            {
+                UsuarioId = UsuarioId,
+                FechaInicio = FechaInicio,
+                FechaFin = FechaFin
+            });
+
+            var nombreArchivo = $"Manejo Presumuesto - {FechaInicio.ToString("MMM yyyy")}.xlsx";
+            return GenerarExcel(nombreArchivo, transacciones);
+        }
+
+        [HttpGet]
+        public async Task<FileResult> ExportarExcelPorAño(int year)
+        {
+            var FechaInicio = new DateTime(year, 1, 1);
+            var FechaFin = FechaInicio.AddYears(1).AddDays(-1);
+            var UsuarioId = servicioUsuarios.ObtenerId();
+
+            var transacciones = await repositorioTransacciones.ObtenerPorUsuarioID(new ParametroObtenerTransaccionesPorUsuario()
+            {
+                UsuarioId = UsuarioId,
+                FechaInicio = FechaInicio,
+                FechaFin = FechaFin
+            });
+
+            var NombreArchivo = $"Transacciones - {FechaInicio.ToString("yyyy")}.xlsx";
+            return GenerarExcel(NombreArchivo, transacciones);
+        }
+
+        [HttpGet]
+        public async Task<FileResult> ExportarExcelTodo()
+        {
+            var FechaInicio = DateTime.Today.AddYears(-100);
+            var FechaFin = DateTime.Today.AddYears(1000);
+            var UsuarioId = servicioUsuarios.ObtenerId();
+
+            var transacciones = await repositorioTransacciones.ObtenerPorUsuarioID(new ParametroObtenerTransaccionesPorUsuario()
+            {
+                UsuarioId = UsuarioId,
+                FechaInicio = FechaInicio,
+                FechaFin = FechaFin
+            });
+
+            var nombreArchivo = $"Manejo Presupuestos - {DateTime.Today.ToString("dd-MM-yyyy")}.xlsx";
+            return GenerarExcel(nombreArchivo, transacciones);
+        }
+
+        private FileResult GenerarExcel(string nombreArchivo, IEnumerable<Transaccion> transacciones)
+        {
+            DataTable dataTable = new DataTable("Transacciones");
+            dataTable.Columns.AddRange(new DataColumn[]
+            {
+                new DataColumn("Fecha"),
+                new DataColumn("Cuenta"),
+                new DataColumn("Categoria"),
+                new DataColumn("Nota"),
+                new DataColumn("Monto"),
+                new DataColumn("Ingreso/Gasto")
+            });
+
+            foreach (var transaccion in transacciones)
+            {
+                dataTable.Rows.Add(transaccion.FechaTransaccion, transaccion.Cuenta, transaccion.Categoria, transaccion.Nota, transaccion.Monto, transaccion.TipoOperacionId);
+            }
+
+            using (XLWorkbook wb= new XLWorkbook())
+            {
+                wb.Worksheets.Add(dataTable);
+
+                using(MemoryStream stream = new MemoryStream())
+                {
+                    wb.SaveAs(stream);
+                    return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", nombreArchivo);
+                }
+            }
         }
 
         public IActionResult Calendario()
